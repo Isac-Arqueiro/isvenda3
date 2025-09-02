@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Vendas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{background:#111;color:#0ff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;display:flex;flex-direction:column;min-height:100vh;}
+h1{text-align:center;margin:10px 0;color:#0ff;}
+#produtos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:10px 15px;flex-grow:1;}
+.produto{background:#000c;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 5px #0ff,inset 0 0 15px #0ff;transition:transform 0.2s ease;}
+.produto:hover{transform:scale(1.05);}
+.produto img{width:80px;height:80px;object-fit:contain;margin-bottom:8px;filter:drop-shadow(0 0 3px #0ff);}
+.produto strong{font-size:1.1rem;margin-bottom:5px;text-align:center;}
+.produto span{margin-bottom:10px;font-weight:600;}
+.produto button{background:linear-gradient(145deg,#00ffff,#0099cc);border:none;padding:6px 14px;color:#000;font-weight:700;border-radius:20px;cursor:pointer;box-shadow:0 0 8px #0ff;transition:background 0.3s ease;}
+.produto button:hover{background:linear-gradient(145deg,#00dddd,#007799);color:#0ff;}
+.qtd-controls{margin-top:8px;display:none;gap:10px;align-items:center;justify-content:center;}
+.qtd-controls button{background:#0ff;border-radius:50%;border:none;width:28px;height:28px;font-weight:700;font-size:1.3rem;cursor:pointer;color:#000;box-shadow:0 0 10px #0ff;transition:background 0.2s ease;}
+.qtd-controls button:hover{background:#09c;color:#0ff;}
+.qtd-controls span{font-weight:700;font-size:1.1rem;width:24px;text-align:center;}
+footer{padding:10px 15px;background:#000a;display:flex;justify-content:flex-start;align-items:center;box-shadow:inset 0 0 8px #0ff;flex-wrap:wrap;gap:8px;}
+#total{font-size:1.2rem;font-weight:700;color:#0ff;}
+#btn-pagar{background:linear-gradient(145deg,#ff0040,#cc0033);border:none;padding:8px 20px;border-radius:25px;cursor:pointer;color:#fff;font-weight:700;box-shadow:0 0 10px #ff0040,inset 0 0 20px #ff6688;transition:box-shadow 0.3s ease;margin-left:10px;flex-shrink:0;}
+#btn-pagar:hover{box-shadow:0 0 15px #ff3366,inset 0 0 25px #ff99aa;}
+#btn-cliente{background:none;border:none;padding:0;margin-left:10px;width:38px;height:38px;border-radius:50%;overflow:hidden;box-shadow:0 0 8px #0ff;cursor:pointer;flex-shrink:0;}
+#btn-cliente img{width:100%;height:100%;object-fit:cover;}
+#btn-cliente:hover{box-shadow:0 0 12px #0ff;}
+#btn-gerenciar-produtos{background:#000;color:#0ff;font-size:1.2rem;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #0ff;margin-left:10px;padding:0;cursor:pointer;border:none;}
+#btn-gerenciar-produtos:hover{background:#022;color:#fff;box-shadow:0 0 12px #0ff;}
+#btn-historico{background:#000;color:#0ff;font-size:1.2rem;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #0ff;margin-left:10px;padding:0;cursor:pointer;border:none;}
+#btn-historico:hover{background:#022;color:#fff;box-shadow:0 0 12px #0ff;}
+#modal-pagamento,#modal-cliente,#modal-produtos,#modal-historico{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);display:none;align-items:center;justify-content:center;z-index:999;padding:15px;}
+.modal-conteudo{background:#002222;border-radius:15px;padding:20px;width:320px;max-width:95vw;box-shadow:0 0 20px #0ff;color:#0ff;display:flex;flex-direction:column;align-items:center;max-height:90vh;overflow-y:auto;}
+.modal-conteudo h2{margin-top:0;margin-bottom:20px;}
+.modal-conteudo button{background:linear-gradient(145deg,#0ff,#009999);border:none;padding:10px 18px;margin:5px 0;width:100%;border-radius:20px;cursor:pointer;font-weight:700;color:#000;box-shadow:0 0 15px #0ff;transition:background 0.3s ease;}
+.modal-conteudo button:hover{background:linear-gradient(145deg,#33ffff,#00bbbb);color:#000;}
+#produtos-lista{width:95%;max-width:600px;margin:0 auto 20px auto;}
+table{width:100%;border-collapse:collapse;}
+th,td{border:1px solid #0ff;padding:5px;text-align:left;}
+th{background:#000c;}
+input{width:100%;}
+.ativo{outline:3px solid #ff0;}
+</style>
+</head>
+<body>
+<h1>Painel de vendas</h1>
+<div id="produtos"></div>
+
+<footer>
+<div id="total">Total: R$ 0.00</div>
+<button id="btn-pagar">Pagar</button>
+<button id="btn-cliente" title="Cadastro de Cliente"><img src="https://www.w3schools.com/w3images/avatar2.png" alt="Cliente"></button>
+<button id="btn-gerenciar-produtos" title="Gerenciar Produtos">📦</button>
+<button id="btn-historico" title="Histórico">⚙️</button>
+</footer>
+
+<!-- Modal Pagamento -->
+<div id="modal-pagamento">
+<div class="modal-conteudo">
+<h2>Forma de Pagamento</h2>
+<button data-pagamento="Pix">Pix</button>
+<button data-pagamento="Cartão">Cartão</button>
+<button data-pagamento="Dinheiro">Dinheiro</button>
+<button id="btn-finalizar">Finalizar Compra</button>
+<button onclick="document.getElementById('modal-pagamento').style.display='none'">Fechar</button>
+</div>
+</div>
+
+<!-- Modal Cliente -->
+<div id="modal-cliente">
+<div class="modal-conteudo">
+<h2>Cadastro do Cliente</h2>
+<label>Nome:</label><input type="text" id="cliente-nome" placeholder="Nome do cliente">
+<label>Observação:</label><textarea id="cliente-obs" placeholder="Observações..."></textarea>
+<button id="btn-salvar-cliente">Ir à compra</button>
+<button id="btn-cancelar-cliente">Cancelar</button>
+</div>
+</div>
+
+<!-- Modal Produtos -->
+<div id="modal-produtos">
+<div class="modal-conteudo">
+<h2>Gerenciar Produtos</h2>
+<button id="btn-add-produto">Adicionar Produto</button>
+<div id="produtos-lista"></div>
+<button onclick="document.getElementById('modal-produtos').style.display='none'">Fechar</button>
+</div>
+</div>
+
+<!-- Modal Histórico -->
+<div id="modal-historico">
+<div class="modal-conteudo">
+<h2>Histórico de Vendas</h2>
+<label>Pesquisar por Nome:</label><input type="text" id="search-nome" placeholder="Nome do cliente">
+<label>Data Início:</label><input type="date" id="search-data-inicio">
+<label>Data Fim:</label><input type="date" id="search-data-fim">
+<button id="btn-filtrar">Filtrar</button>
+<div id="historico-lista" style="width:100%;margin-top:10px;max-height:300px;overflow-y:auto;"></div>
+<button id="btn-download-pdf">Baixar PDF</button>
+<button id="btn-apagar-historico" style="background:#ff0000;color:#fff;">Apagar Histórico</button>
+<button onclick="document.getElementById('modal-historico').style.display='none'">Fechar</button>
+</div>
+</div>
+
+<script>
+let produtos=[], carrinho={}, clienteAtual={nome:'',obs:''};
+
+// Inicializar produtos
+function initProdutos(){
+  const data=localStorage.getItem("produtos");
+  if(data){ produtos=JSON.parse(data);}
+  else{
+    produtos=[
+      {id:1,nome:"Hambúrguer",preco:15,imagem:"https://images.vexels.com/media/users/3/143047/isolated/lists/b0c9678466af11dd45a62163bdcf03fe-icone-plano-de-hamburguer-de-fast-food.png"},
+      {id:2,nome:"Batata Frita",preco:10,imagem:"https://png.pngtree.com/png-vector/20231017/ourmid/pngtree-french-fries-on-white-bowl-isolated-fried-fast-food-snack-isolated-png-image_10155460.png"},
+      {id:3,nome:"Refrigerante",preco:7.5,imagem:"https://static.vecteezy.com/system/resources/previews/037/751/381/non_2x/coca-cola-plastic-bottle-isolated-on-transparent-background-free-png.png"}
+    ];
+    localStorage.setItem("produtos",JSON.stringify(produtos));
+  }
+  renderProdutos();
+  renderListaProdutos();
+}
+
+function salvarProdutos(){ localStorage.setItem("produtos",JSON.stringify(produtos)); }
+
+function renderProdutos(){
+  const div=document.getElementById("produtos"); div.innerHTML="";
+  produtos.forEach(p=>{
+    const d=document.createElement("div"); d.className="produto";
+    d.innerHTML=`<img src="${p.imagem}" alt="${p.nome}"><strong>${p.nome}</strong><span>R$ ${p.preco.toFixed(2)}</span>
+    <button onclick="addProd(${p.id})">Adicionar</button>
+    <div class="qtd-controls" id="ctrl-${p.id}">
+      <button onclick="alteraQtd(${p.id},-1)">-</button>
+      <span id="q-${p.id}">0</span>
+      <button onclick="alteraQtd(${p.id},1)">+</button>
+    </div>`;
+    div.appendChild(d);
+  });
+  atualizarCarrinho();
+}
+
+function addProd(id){
+  if(!carrinho[id]) carrinho[id]=0;
+  carrinho[id]++;
+  document.getElementById(`ctrl-${id}`).style.display="flex";
+  document.getElementById(`q-${id}`).textContent=carrinho[id];
+  atualizarCarrinho();
+}
+
+function alteraQtd(id, delta){
+  if(!carrinho[id]) return;
+  carrinho[id]+=delta;
+  if(carrinho[id]<=0){
+    carrinho[id]=0;
+    document.getElementById(`ctrl-${id}`).style.display="none";
+  }
+
+  document.getElementById(`q-${id}`).textContent=carrinho[id];
+  atualizarCarrinho();
+}
+
+function atualizarCarrinho(){
+  let total=0;
+  for(let id in carrinho){
+    const p=produtos.find(x=>x.id==id);
+    if(p) total+=p.preco*carrinho[id];
+  }
+  document.getElementById("total").textContent="Total: R$ "+total.toFixed(2);
+}
+document.getElementById("btn-apagar-historico").onclick = () => {
+  if(confirm("Deseja realmente apagar todo o histórico de vendas?")){
+    localStorage.removeItem("vendas");
+    renderHistorico();
+    alert("Histórico apagado com sucesso!");
+  }
+};
+// Renderizar lista de produtos no modal
+function renderListaProdutos(){
+  const div=document.getElementById("produtos-lista");
+  if(!produtos.length){ div.innerHTML="<p>Nenhum produto cadastrado.</p>"; return;}
+  let html="<table><tr><th>Nome</th><th>Preço</th><th>Imagem</th><th>Ações</th></tr>";
+  produtos.forEach(p=>{
+    html+=`<tr data-id="${p.id}">
+      <td><input type="text" value="${p.nome}" class="edit-nome"></td>
+      <td><input type="number" value="${p.preco}" step="0.01" class="edit-preco"></td>
+      <td><input type="file" accept="image/*" class="edit-imagem-arquivo">
+      <img src="${p.imagem}" alt="preview" style="width:40px;height:40px;object-fit:cover;margin-top:5px;"></td>
+      <td><button class="btn-salvar">Salvar</button><button class="btn-excluir">Excluir</button></td>
+    </tr>`;
+  });
+  html+="</table>";
+  div.innerHTML=html;
+
+  div.querySelectorAll(".edit-imagem-arquivo").forEach(input=>{
+    input.onchange=function(){
+      const file=this.files[0];
+      if(file){
+        const reader=new FileReader();
+        reader.onload=e=>{
+          this.nextElementSibling.src=e.target.result;
+          this.dataset.base64=e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  });
+
+  div.querySelectorAll(".btn-salvar").forEach(btn=>{
+    btn.onclick=function(){
+      const tr=this.closest("tr"), id=Number(tr.dataset.id);
+      const nome=tr.querySelector(".edit-nome").value.trim();
+      const preco=parseFloat(tr.querySelector(".edit-preco").value);
+      const fileInput=tr.querySelector(".edit-imagem-arquivo");
+      let imagem=fileInput.dataset.base64 || tr.querySelector("img").src;
+      if(!nome||isNaN(preco)) return alert("Preencha corretamente");
+      const p=produtos.find(x=>x.id==id);
+      if(p){ 
+        p.nome=nome; 
+        p.preco=preco; 
+        p.imagem=imagem; 
+        salvarProdutos(); 
+        renderProdutos(); 
+        renderListaProdutos();
+      }
+    };
+  });
+
+  div.querySelectorAll(".btn-excluir").forEach(btn=>{
+    btn.onclick=function(){
+      const tr=this.closest("tr"), id=Number(tr.dataset.id);
+      if(confirm("Deseja excluir este produto?")){
+        produtos=produtos.filter(x=>x.id!=id); 
+        salvarProdutos(); 
+        renderProdutos(); 
+        renderListaProdutos();
+      }
+    };
+  });
+}
+
+document.getElementById("btn-add-produto").onclick=()=>{
+  const id=produtos.length ? Math.max(...produtos.map(p=>p.id))+1 : 1;
+  produtos.push({id,nome:"Novo Produto",preco:0,imagem:"https://via.placeholder.com/80"});
+  salvarProdutos();
+  renderProdutos();
+  renderListaProdutos();
+};
+
+document.getElementById("btn-gerenciar-produtos").onclick=()=>{ 
+  document.getElementById("modal-produtos").style.display="flex"; 
+  renderListaProdutos();
+};
+document.getElementById("btn-cliente").onclick=()=>{ 
+  document.getElementById("modal-cliente").style.display="flex"; 
+};
+document.getElementById("btn-pagar").onclick=()=>{ 
+  document.getElementById("modal-pagamento").style.display="flex"; 
+};
+document.getElementById("btn-historico").onclick = ()=>{
+  document.getElementById("modal-historico").style.display="flex";
+  renderHistorico();
+};
+
+document.getElementById("btn-salvar-cliente").onclick = ()=>{
+  clienteAtual.nome = document.getElementById("cliente-nome").value.trim() || "Consumidor";
+  clienteAtual.obs = document.getElementById("cliente-obs").value.trim() || "";
+  document.getElementById("modal-cliente").style.display="none";
+  document.getElementById("modal-pagamento").style.display="flex";
+};
+
+document.querySelectorAll("#modal-pagamento button[data-pagamento]").forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll("#modal-pagamento button[data-pagamento]").forEach(b=>b.classList.remove("ativo"));
+    btn.classList.add("ativo");
+  };
+});
+
+document.getElementById("btn-finalizar").onclick = () => {
+  if(Object.keys(carrinho).length === 0){
+    alert("Carrinho vazio!");
+    return;
+  }
+  
+  const cliente = {nome: clienteAtual.nome, obs: clienteAtual.obs};
+  const forma = document.querySelector('#modal-pagamento button[data-pagamento].ativo')?.dataset.pagamento;
+  if(!forma){ alert("Selecione a forma de pagamento!"); return; }
+
+  const vendas = JSON.parse(localStorage.getItem("vendas")||"[]");
+  vendas.push({cliente, itens: {...carrinho}, forma, data: new Date().toISOString().split("T")[0]});
+  localStorage.setItem("vendas", JSON.stringify(vendas));
+
+  // Limpar carrinho
+  carrinho = {};
+  produtos.forEach(p=>{
+    const ctrl = document.getElementById(`ctrl-${p.id}`);
+    if(ctrl) ctrl.style.display="none";
+  });
+  atualizarCarrinho();
+  document.getElementById("modal-pagamento").style.display="none";
+  clienteAtual={nome:'',obs:''};
+  alert("Compra finalizada com sucesso!");
+};
+
+// Histórico
+function renderHistorico(){
+  const listaDiv = document.getElementById("historico-lista");
+  const vendas = JSON.parse(localStorage.getItem("vendas")||"[]");
+  const searchNome = document.getElementById("search-nome").value.toLowerCase();
+  const dataInicio = document.getElementById("search-data-inicio").value;
+  const dataFim = document.getElementById("search-data-fim").value;
+
+  if(vendas.length===0){ 
+    listaDiv.innerHTML="<p>Nenhuma venda registrada.</p>"; 
+    listaDiv.dataset.filtradas = "[]";
+    return; 
+  }
+
+  let html = "<table><tr><th>Cliente</th><th>Data</th><th>Itens</th><th>Total</th></tr>";
+  let vendasFiltradas = [];
+  vendas.forEach(v=>{
+    const vendaData = v.data;
+    if(searchNome && !v.cliente.nome.toLowerCase().includes(searchNome)) return;
+    if(dataInicio && vendaData < dataInicio) return;
+    if(dataFim && vendaData > dataFim) return;
+
+    vendasFiltradas.push(v);
+
+    let itensHtml = "";
+    let totalVenda = 0;
+    for(const id in v.itens){
+      const prod = produtos.find(p => p.id==id);
+      if(prod){
+        const qtd = v.itens[id];
+        const totalItem = prod.preco*qtd;
+        totalVenda += totalItem;
+        itensHtml += `${prod.nome} x${qtd} - R$ ${prod.preco.toFixed(2)} cada | Total: R$ ${totalItem.toFixed(2)}<br>`;
+      }
+    }
+    html += `<tr>
+      <td>${v.cliente.nome}<br>${v.cliente.obs ? 'Obs: '+v.cliente.obs : ''}</td>
+      <td>${vendaData}</td>
+      <td>${itensHtml}</td>
+      <td>R$ ${totalVenda.toFixed(2)}</td>
+    </tr>`;
+  });
+  html += "</table>";
+  listaDiv.innerHTML = html;
+  listaDiv.dataset.filtradas = JSON.stringify(vendasFiltradas);
+}
+
+document.getElementById("btn-filtrar").onclick = renderHistorico;
+
+// PDF atualizado para vendas filtradas
+document.getElementById("btn-download-pdf").onclick = () => {
+  const doc = new jspdf.jsPDF();
+  const listaDiv = document.getElementById("historico-lista");
+  const vendasFiltradas = JSON.parse(listaDiv.dataset.filtradas || "[]");
+  
+  if(vendasFiltradas.length===0){ 
+    alert("Nenhuma venda para gerar PDF."); 
+    return; 
+  }
+
+  let y = 10;
+  doc.setFontSize(12);
+  doc.text("Histórico de Vendas",10,y); 
+  y+=10;
+
+  vendasFiltradas.forEach(v=>{
+    doc.text(`Cliente: ${v.cliente.nome} | Data: ${v.data}`,10,y); 
+    y+=6;
+    if(v.cliente.obs) { 
+      doc.text(`Observação: ${v.cliente.obs}`,10,y);
+      y+=6;
+    }
+    for(const id in v.itens){
+      const prod = produtos.find(p=>p.id==id);
+      if(prod){
+        const qtd = v.itens[id];
+        const totalItem = prod.preco*qtd;
+        doc.text(`- ${prod.nome} x${qtd} R$ ${prod.preco.toFixed(2)} | Total: R$ ${totalItem.toFixed(2)}`,12,y);
+        y+=6;
+      }
+    }
+    y+=4;
+    if(y>270){ 
+      doc.addPage(); 
+      y=10; 
+    }
+  });
+
+  // Total geral
+  const totalGeral = vendasFiltradas.reduce((acc,v)=>{
+    let totalVenda = 0;
+    for(const id in v.itens){
+      const prod = produtos.find(p=>p.id==id);
+      if(prod) totalVenda += prod.preco*v.itens[id];
+    }
+    return acc + totalVenda;
+  },0);
+  doc.text(`Total Geral das Vendas Filtradas: R$ ${totalGeral.toFixed(2)}`,10,y+10);
+
+  doc.save("historico_vendas.pdf");
+};
+
+initProdutos();
+</script>
+</body>
+</html>
