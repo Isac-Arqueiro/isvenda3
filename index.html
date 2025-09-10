@@ -1,10 +1,57 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
   <style>
 body
+    /* Garantir que o conteúdo nunca "estoure" a tela */
+body, html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Produtos ficam em 2 colunas no celular */
+@media (max-width: 600px) {
+  #produtos {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .produto img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .produto strong {
+    font-size: 1rem;
+  }
+
+  .produto span {
+    font-size: 0.9rem;
+  }
+
+  footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  #btn-pagar, #btn-cliente, #btn-gerenciar-produtos, #btn-historico {
+    margin-left: 0;
+  }
+}
+
+/* Tablets */
+@media (min-width: 601px) and (max-width: 900px) {
+  #produtos {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
 {background:#111;color:#0ff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;display:flex;flex-direction:column;min-height:100vh;}
 h1{text-align:center;margin:10px 0;color:#0ff;}
 #produtos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:10px 15px;flex-grow:1;}
