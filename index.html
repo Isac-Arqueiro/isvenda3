@@ -397,10 +397,7 @@ document.getElementById("btn-filtrar").onclick = renderHistorico;
 
 // PDF atualizado para vendas filtradas
 document.getElementById("btn-download-pdf").onclick = () => {
-  const { jsPDF } = window.jspdf;  // ← Importa corretamente
-  const doc = new jsPDF();
-  ...
-};
+  const doc = new jspdf.jsPDF();
   
   if(vendasFiltradas.length===0){ 
     alert("Nenhuma venda para gerar PDF."); 
