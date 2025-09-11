@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
-  <style>
-    <!-- Biblioteca jsPDF -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Vendas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    body
-{background:#111;color:#0ff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;display:flex;flex-direction:column;min-height:100vh;}
+<style>
+body{background:#111;color:#0ff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;display:flex;flex-direction:column;min-height:100vh;}
 h1{text-align:center;margin:10px 0;color:#0ff;}
 #produtos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:10px 15px;flex-grow:1;}
 .produto{background:#000c;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 5px #0ff,inset 0 0 15px #0ff;transition:transform 0.2s ease;}
@@ -46,47 +45,6 @@ input{width:100%;}
 </style>
 </head>
 <body>
-  <div id="bloqueio" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#111;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;">
-  <h2>Digite a senha para acessar o site</h2>
-  <input type="password" id="senhaInput" style="padding:10px;font-size:16px;" placeholder="Senha">
-  <button id="btnEntrar" style="padding:10px 20px;margin-top:10px;font-size:16px;">Entrar</button>
-<a href="https://wa.me/558486222876?text=Olá,%20quero%20falar%20com%20vocês!" 
-   target="_blank" 
-   style="display: inline-block; margin-top: 10px; padding: 5px 15px; background-color: #25D366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
-  📱 Fale conosco
-</a>
-  <p id="mensagem" style="color:red;margin-top:10px;"></p>
-</div>
-
-<script>
-  const senhasValidas = 
-["A012500D89"];
- // coloque suas senhas aqui
-  const bloqueio = document.getElementById('bloqueio');
-  const senhaInput = document.getElementById('senhaInput');
-  const btnEntrar = document.getElementById('btnEntrar');
-  const mensagem = document.getElementById('mensagem');
-
-  // verifica se já existe senha salva
-  let senhaSalva = localStorage.getItem('senhaCache');
-  if(senhaSalva && senhasValidas.includes(senhaSalva)){
-    bloqueio.style.display = 'none'; // libera conteúdo automaticamente
-  }
-
-  function verificarSenha(){
-    const senha = senhaInput.value.trim();
-    if(senhasValidas.includes(senha)){
-      localStorage.setItem('senhaCache', senha);
-      bloqueio.style.display = 'none';
-    } else {
-      mensagem.textContent = "Senha incorreta!";
-      senhaInput.value = "";
-    }
-  }
-
-  btnEntrar.addEventListener('click', verificarSenha);
-  senhaInput.addEventListener('keydown', e => { if(e.key === 'Enter') verificarSenha(); });
-</script>
 <h1>Painel de vendas</h1>
 <div id="produtos"></div>
 
@@ -397,11 +355,14 @@ document.getElementById("btn-filtrar").onclick = renderHistorico;
 // PDF atualizado para vendas filtradas
 document.getElementById("btn-download-pdf").onclick = () => {
   const doc = new jspdf.jsPDF();
+  const listaDiv = document.getElementById("historico-lista");
+  const vendasFiltradas = JSON.parse(listaDiv.dataset.filtradas || "[]");
   
   if(vendasFiltradas.length===0){ 
     alert("Nenhuma venda para gerar PDF."); 
     return; 
   }
+
   let y = 10;
   doc.setFontSize(12);
   doc.text("Histórico de Vendas",10,y); 
@@ -445,33 +406,6 @@ document.getElementById("btn-download-pdf").onclick = () => {
 };
 
 initProdutos();
-</script>
- <button id="btnInstall" style="display:none;">📲 Instalar App</button>
-
-<script>
-let deferredPrompt;
-const btnInstall = document.getElementById("btnInstall");
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  btnInstall.style.display = "block"; // mostra o botão
-});
-
-btnInstall.addEventListener("click", async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log("Resultado da instalação:", outcome);
-    deferredPrompt = null;
-    btnInstall.style.display = "none";
-  }
-});
-
-// Registrar o Service Worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
 </script>
 </body>
 </html>
